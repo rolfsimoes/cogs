@@ -1,0 +1,18 @@
+test_that("rg_info() validates input parameters", {
+  expect_error(
+    rg_info(c("file1.tif", "file2.tif")),
+    "'path' must be a single character string"
+  )
+})
+
+test_that("rg_info() returns metadata for fixture raster", {
+  info <- rg_info(test_data_path("grid_base.tif"))
+  expect_equal(info$width, 3L)
+  expect_equal(info$height, 3L)
+  expect_equal(info$bands, 1L)
+  expect_equal(info$dtype, "Float64")
+  expect_true(is.na(info$nodata))
+  expect_equal(length(info$gt), 6L)
+  expect_false(info$color_table)
+  expect_false(info$categories)
+})

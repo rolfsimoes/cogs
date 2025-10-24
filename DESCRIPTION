@@ -1,0 +1,23 @@
+Package: ghcog
+Type: Package
+Title: Manage GitHub Releases for Cloud-Optimized Geospatial Assets
+Version: 0.0.0.9000
+Authors@R: person("Rolf", "Simoes", email = "rolf@example.com", role = c("aut", "cre"))
+Description: Helper functions to publish, discover, and catalogue Cloud-Optimized GeoTIFF
+    assets stored as GitHub release attachments, including utilities to build
+    VRT mosaics from signed asset URLs.
+License: GPL-3
+Depends: 
+    R (>= 3.6)
+Imports: 
+    glue,
+    httr,
+    piggyback
+Suggests: 
+    sf,
+    testthat (>= 3.1.0)
+Encoding: UTF-8
+LazyData: false
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Config/testthat/edition: 3

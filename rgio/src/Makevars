@@ -1,0 +1,6 @@
+# Makevars for rgio package
+# Links to GDAL library
+
+PKG_CPPFLAGS = $(shell gdal-config --cflags)
+PKG_LIBS = $(shell gdal-config --libs)
+

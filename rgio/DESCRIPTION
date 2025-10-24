@@ -1,0 +1,19 @@
+Package: rgio
+Type: Package
+Title: High-Performance Raster/Vector I/O and Transformation with GDAL
+Version: 0.1.0
+Authors@R: c(
+    person("Rolf", "Simoes", email = "rolf.simoes@example.com", role = c("aut", "cre"))
+    )
+Description: Provides high-performance raster/vector I/O and lightweight 
+    transformation functions for GTiff/COG/VRT, backed by GDAL C/C++. 
+    Includes functions for rasterizing vector files, warping and mosaicking 
+    rasters, reading rasters to bounding box grids, and applying color legends.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Depends: R (>= 3.5.0)
+Suggests: 
+    testthat (>= 3.0.0)
+SystemRequirements: GDAL (>= 3.0.0)
+RoxygenNote: 7.3.3
