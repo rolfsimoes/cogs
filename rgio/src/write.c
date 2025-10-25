@@ -2,21 +2,10 @@
 #include <Rinternals.h>
 
 #include <gdal.h>
+#include "gdal_utils.h"
 #include <cpl_conv.h>
 #include <cpl_string.h>
-#include <ogr_srs_api.h>
 #include <string.h>
-
-static GDALDataType parse_datatype(const char *type_str) {
-  if (strcmp(type_str, "Byte") == 0) return GDT_Byte;
-  if (strcmp(type_str, "UInt16") == 0) return GDT_UInt16;
-  if (strcmp(type_str, "Int16") == 0) return GDT_Int16;
-  if (strcmp(type_str, "UInt32") == 0) return GDT_UInt32;
-  if (strcmp(type_str, "Int32") == 0) return GDT_Int32;
-  if (strcmp(type_str, "Float32") == 0) return GDT_Float32;
-  if (strcmp(type_str, "Float64") == 0) return GDT_Float64;
-  return GDT_Unknown;
-}
 
 static void *convert_buffer(const double *src, int n, GDALDataType type,
                             int has_nodata, double nodata_val) {
@@ -209,8 +198,9 @@ SEXP _rgio_wr(SEXP file, SEXP data, SEXP width, SEXP height,
   }
 
   const char *type_str = CHAR(STRING_ELT(datatype, 0));
-  GDALDataType gdal_type = parse_datatype(type_str);
-  if (gdal_type == GDT_Unknown) {
+  GDALDataType gdal_type = ftype_from_string(type_str);
+  const char *resolved_name = GDALGetDataTypeName(gdal_type);
+  if (resolved_name == NULL || strcmp(type_str, resolved_name) != 0) {
     error("Unsupported 'datatype': %s", type_str);
   }
 
@@ -225,16 +215,21 @@ SEXP _rgio_wr(SEXP file, SEXP data, SEXP width, SEXP height,
     }
   }
 
-  GDALDriverH driver = GDALGetDriverByName("GTiff");
-  if (driver == NULL) {
-    if (papszOptions != NULL) CSLDestroy(papszOptions);
-    error("GTiff driver is not available");
-  }
-
-  GDALDatasetH dataset = GDALCreate(driver, filepath, nXSize, nYSize, 1,
-                                    gdal_type, papszOptions);
+  const char *crs_str = CHAR(STRING_ELT(crs, 0));
+  GDALDatasetH dataset = create_raster_dataset(
+    filepath,
+    "GTiff",
+    type_str,
+    NULL,
+    nXSize,
+    nYSize,
+    0.0,
+    0.0,
+    crs_str,
+    1,
+    papszOptions
+  );
   if (papszOptions != NULL) CSLDestroy(papszOptions);
-
   if (dataset == NULL) {
     error("Failed to create GeoTIFF: %s", filepath);
   }
@@ -243,30 +238,6 @@ SEXP _rgio_wr(SEXP file, SEXP data, SEXP width, SEXP height,
     GDALClose(dataset);
     error("Failed to set geotransform for %s", filepath);
   }
-
-  const char *crs_str = CHAR(STRING_ELT(crs, 0));
-  OGRSpatialReferenceH srs = OSRNewSpatialReference(NULL);
-  if (srs == NULL) {
-    GDALClose(dataset);
-    error("Failed to allocate spatial reference");
-  }
-
-  if (OSRSetFromUserInput(srs, crs_str) != OGRERR_NONE) {
-    OSRDestroySpatialReference(srs);
-    GDALClose(dataset);
-    error("Failed to parse CRS: %s", crs_str);
-  }
-
-  char *wkt = NULL;
-  if (OSRExportToWkt(srs, &wkt) != OGRERR_NONE) {
-    OSRDestroySpatialReference(srs);
-    GDALClose(dataset);
-    error("Failed to export CRS to WKT");
-  }
-
-  GDALSetProjection(dataset, wkt);
-  CPLFree(wkt);
-  OSRDestroySpatialReference(srs);
 
   GDALRasterBandH band = GDALGetRasterBand(dataset, 1);
   if (band == NULL) {

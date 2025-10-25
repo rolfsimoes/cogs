@@ -6,9 +6,9 @@
 #include <R.h>
 #include <Rinternals.h>
 #include <gdal.h>
+#include "gdal_utils.h"
 #include <gdal_alg.h>
 #include <gdalwarper.h>
-#include <ogr_srs_api.h>
 #include <cpl_conv.h>
 #include <cpl_string.h>
 
@@ -103,9 +103,19 @@ SEXP _rgio_rd(SEXP src, SEXP bbox, SEXP width, SEXP height,
     }
     
     /* Create in-memory target dataset */
-    GDALDriverH mem_driver = GDALGetDriverByName("MEM");
-    GDALDatasetH dst_ds = GDALCreate(mem_driver, "", grid_width, grid_height, 1, GDT_Float64, NULL);
-    
+    GDALDatasetH dst_ds = create_raster_dataset(
+      "",
+      "MEM",
+      "Float64",
+      NULL,
+      grid_width,
+      grid_height,
+      0.0,
+      0.0,
+      target_crs,
+      1,
+      NULL
+    );
     if (dst_ds == NULL) {
       GDALClose(src_ds);
       UNPROTECT(2);
@@ -114,7 +124,6 @@ SEXP _rgio_rd(SEXP src, SEXP bbox, SEXP width, SEXP height,
     
     /* Set target geotransform and projection */
     GDALSetGeoTransform(dst_ds, gt);
-    GDALSetProjection(dst_ds, target_crs);
     
     /* Get target band and set nodata */
     GDALRasterBandH dst_band = GDALGetRasterBand(dst_ds, 1);

@@ -2,51 +2,121 @@
 % Please edit documentation in R/rasterize.R
 \name{rg_rasterize}
 \alias{rg_rasterize}
-\title{Rasterize Vector Files}
+\title{Rasterize Vector Layers with GDAL}
 \usage{
 rg_rasterize(
   files,
   outdir,
-  field = "class",
+  value = 1,
+  field = NULL,
   res = c(0.00025, 0.00025),
   crs = "EPSG:4326",
   nodata = 0L,
+  dtype = "UInt16",
+  format = "GTiff",
+  ro = c("ALL_TOUCHED=FALSE"),
   co = c("COMPRESS=ZSTD", "TILED=YES", "BIGTIFF=YES"),
   threads = 0L
 )
 }
 \arguments{
-\item{files}{Character vector of input vector file paths}
+\item{files}{Character vector of input vector file paths.
+Each file must contain at least one polygon, line, or point layer.}
 
-\item{outdir}{Output directory for rasterized GeoTIFF files}
+\item{outdir}{Character string: output directory for rasterized files.
+Each input vector produces one raster file.}
 
-\item{field}{Character string specifying the field/attribute to rasterize (default: "class")}
+\item{value}{Numeric scalar burn value used when \code{ro} does not
+specify an attribute field (default: \code{1}).}
 
-\item{res}{Numeric vector of length 2 specifying x and y resolution (default: c(0.00025, 0.00025))}
+\item{field}{Character name of the attribute to burn into the raster.
+If NULL or not found in the vector layer, `value` is used.}
 
-\item{crs}{Character string specifying the coordinate reference system (default: "EPSG:4326")}
+\item{res}{Numeric vector of length two giving the x- and y-resolution
+of the output raster (e.g., \code{c(0.00025, 0.00025)}).}
 
-\item{nodata}{Integer or numeric value for nodata pixels (default: 0L)}
+\item{crs}{Character string specifying the coordinate reference system,
+either as an EPSG code (e.g., \code{"EPSG:4326"}) or PROJ/WKT string.}
 
-\item{co}{Character vector of GDAL creation options (default: `c("COMPRESS=ZSTD", "TILED=YES", "BIGTIFF=YES")`)}
+\item{nodata}{Integer or numeric value assigned to nodata pixels
+(default: \code{0L}).}
 
-\item{threads}{Integer specifying number of threads (0 = auto, default: 0L)}
+\item{dtype}{Character string indicating the GDAL data type for the
+raster band. Typical values include:
+\code{"Byte"}, \code{"UInt16"}, \code{"Int16"},
+\code{"UInt32"}, \code{"Int32"}, \code{"Float32"}, or \code{"Float64"}.
+(default: \code{"UInt16"}).}
+
+\item{format}{Character string specifying the GDAL output format,
+usually \code{"GTiff"} or \code{"COG"} (default: \code{"GTiff"}).}
+
+\item{ro}{Character vector of GDAL rasterization options. Examples:
+\code{c("ATTRIBUTE=class", "ALL_TOUCHED=TRUE")}.
+See \code{gdal_rasterize --help} for supported options.}
+
+\item{co}{Character vector of GDAL creation options controlling output
+compression, tiling, and block size. Examples:
+\code{c("COMPRESS=ZSTD", "TILED=YES", "BIGTIFF=YES")}.}
+
+\item{threads}{Integer number of threads to use for GDAL internal
+operations (\code{0} = use all available CPUs, default: \code{0L}).}
 }
 \value{
-Character vector of output file paths
+A character vector giving the full file paths of the output rasters.
 }
 \description{
-Convert one or many vector files (shapefiles, GeoJSON, etc.) to GeoTIFF tiles in parallel.
-This function wraps GDAL's rasterization capabilities with multi-threaded processing.
+Converts one or more vector datasets (e.g., Shapefile, GeoJSON, GPKG) into
+raster tiles using GDAL's rasterization engine. The function supports
+both **GeoTIFF** and **Cloud-Optimized GeoTIFF (COG)** outputs and
+allows explicit control over pixel size, projection, data type, and
+compression options.
 }
+\details{
+This is a lightweight, high-performance wrapper around GDAL’s
+`RasterizeLayers()` API. It is optimized for use in large-scale
+parallel pipelines where intermediate data are stored in tiled,
+compressed GeoTIFFs or COGs.
+}
+\section{Details}{
+
+Each input vector file is processed independently. Rasterization is
+performed using GDAL’s internal multithreading when available.
+The raster grid is determined from the vector extent and the specified
+resolution (\code{res}). If both resolution and pixel dimensions
+(\code{width}/\code{height}) are provided internally, resolution takes
+precedence.
+
+For attribute-based rasterization, include an \code{"ATTRIBUTE=..."}
+entry in \code{ro}. Otherwise, a constant burn value (from \code{value})
+is applied.
+}
+
 \examples{
 \dontrun{
-# Rasterize a single shapefile
-rg_rasterize("input.shp", "output_dir", field = "landcover")
+# Rasterize a single shapefile to GeoTIFF
+rg_rasterize(
+  files   = "input.shp",
+  outdir  = "out",
+  res     = c(0.00025, 0.00025),
+  crs     = "EPSG:4326",
+  dtype   = "Byte",
+  format  = "GTiff"
+)
 
-# Rasterize multiple files in parallel
-files <- c("file1.shp", "file2.shp", "file3.shp")
-rg_rasterize(files, "output_dir", threads = 4)
+# Rasterize multiple files in parallel using all CPUs
+files <- c("a.shp", "b.shp", "c.shp")
+rg_rasterize(
+  files   = files,
+  outdir  = "out",
+  dtype   = "UInt16",
+  format  = "COG",
+  threads = 0L
+)
 }
 
+}
+\seealso{
+[gdal_rasterize](https://gdal.org/programs/gdal_rasterize.html),
+[GDALRasterizeLayers](https://gdal.org/api/raster_c_api.html),
+and \code{\link{rg_warp}} for reprojection and mosaicking.
 }

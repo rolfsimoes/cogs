@@ -8,8 +8,9 @@
 #include <R_ext/Rdynload.h>
 
 /* Forward declarations of C entry points */
-extern SEXP _rgio_rz(SEXP files, SEXP outdir, SEXP field, SEXP res,
-                     SEXP crs, SEXP nodata, SEXP co, SEXP threads);
+extern SEXP _rgio_rz(SEXP files, SEXP outdir, SEXP value, SEXP field,
+                     SEXP res, SEXP crs, SEXP nodata, SEXP dtype,
+                     SEXP format, SEXP ro, SEXP co, SEXP threads);
 extern SEXP _rgio_wp(SEXP src, SEXP dst, SEXP tr, SEXP crs,
                      SEXP resample, SEXP dstnodata, SEXP wo,
                      SEXP co, SEXP threads, SEXP format, SEXP overwrite);
@@ -35,10 +36,11 @@ extern SEXP _rgio_overviews(SEXP path, SEXP levels, SEXP resample,
 extern SEXP _rgio_info(SEXP path);
 extern SEXP _rgio_vec(SEXP src, SEXP dst, SEXP format, SEXP band,
                       SEXP field, SEXP connectedness, SEXP mask, SEXP co);
+extern SEXP _rgio_gdal_capabilities(SEXP format);
 
 /* Registration table */
 static const R_CallMethodDef CallEntries[] = {
-  {"_rgio_rz", (DL_FUNC) &_rgio_rz, 8},
+  {"_rgio_rz", (DL_FUNC) &_rgio_rz, 12},
   {"_rgio_wp", (DL_FUNC) &_rgio_wp, 11},
   {"_rgio_rd", (DL_FUNC) &_rgio_rd, 9},
   {"_rgio_lg", (DL_FUNC) &_rgio_lg, 4},
@@ -53,6 +55,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"_rgio_overviews", (DL_FUNC) &_rgio_overviews, 5},
   {"_rgio_info", (DL_FUNC) &_rgio_info, 1},
   {"_rgio_vec", (DL_FUNC) &_rgio_vec, 8},
+  {"_rgio_gdal_capabilities", (DL_FUNC) &_rgio_gdal_capabilities, 1},
   {NULL, NULL, 0}
 };
 
@@ -64,7 +67,7 @@ extern void rgio_gdal_cleanup(void);
 void R_init_rgio(DllInfo *dll) {
   R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
   R_useDynamicSymbols(dll, FALSE);
-  
+
   /* Initialize GDAL */
   rgio_gdal_init();
 }
